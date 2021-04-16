@@ -1,5 +1,5 @@
 ---
-title: DHSC powerpoint
+title: DHSC example
 subtitle: This is a placeholder subtitle
 output: 
   powerpoint_presentation:

@@ -1,0 +1,15 @@
+---
+title: "readxl_test_code.Rmd"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+```
+
+## readxl test
+```{r}
+xlsx_example <- readxl_example("datasets.xlsx")
+read_excel(xlsx_example)
+```

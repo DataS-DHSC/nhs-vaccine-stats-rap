@@ -1,3 +1,5 @@
 # stats-to-powerpoint-rap
 
-Open the Rmd file and use the Knit feature in RStudio to create the pptx file.
+## Usage
+
+In RStudio, you can open the Rmd file and use the Knit feature to create the pptx file.

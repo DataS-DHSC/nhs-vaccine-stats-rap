@@ -1,9 +1,10 @@
 ---
-title: "readxl_test_code.Rmd"
+title: "01_vaccine_coverage"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
+# Packages
 knitr::opts_chunk$set(echo = TRUE)
 library(readxl)
 library(dplyr)
@@ -18,26 +19,30 @@ library(DHSCcolours)
 
 ## test 2
 ```{r}
-path <- "COVID-19-weekly-announced-vaccinations-1-April-2021.xlsx"
+# Read in the latest xlsx file
+path <- "COVID-19-weekly-announced-vaccinations-29-April-2021-.xlsx"
 sheets <- (excel_sheets(path))
 print(sheets)
 ```
 
 ```{r}
+# Extract the first dose table from the sheet
 first_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
   dplyr::slice(11:12) %>% 
-  dplyr::select(3:10)
+  dplyr::select(3:11) # change this if the columns change!
 first_dose_tbl
 ```
 
 ```{r}
+# Extract the second dose table from the sheet
 second_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
   dplyr::slice(11:12) %>% 
-  dplyr::select(12:19)
+  dplyr::select(15:23) # change this if the columns change!
 second_dose_tbl
 ```
 
 ```{r}
+# Tidy first dose table
 names(first_dose_tbl) <- lapply(first_dose_tbl[1, ], as.character)
 first_dose_tbl <- dplyr::slice(first_dose_tbl, 2) %>% 
   tidyr::pivot_longer(cols = everything(), names_to = "age", values_to = "first_dose")
@@ -46,6 +51,7 @@ first_dose_tbl
 ```
 
 ```{r}
+# Tidy second dose table
 names(second_dose_tbl) <- lapply(second_dose_tbl[1, ], as.character)
 second_dose_tbl <- dplyr::slice(second_dose_tbl, 2) %>% 
   tidyr::pivot_longer(cols = everything(), names_to = "age", values_to = "second_dose")
@@ -54,19 +60,33 @@ second_dose_tbl
 ```
 
 ```{r}
+# Join first and second dose table
 both_doses_tbl <- first_dose_tbl %>% left_join(second_dose_tbl, by = "age")
 both_doses_tbl <- reshape2::melt(both_doses_tbl, id.vars = c("age"), variable.name = "dose", value.name = "total")
 both_doses_tbl$total <- as.numeric(both_doses_tbl$total)
 both_doses_tbl
 ```
-
+```{r}
+# Convert total to millions of doses
+both_doses_tbl$total_millions <- both_doses_tbl$total / 1e6
+both_doses_tbl
+```
 
 ```{r}
+# Set DHSC colours and plot data
 dhsc_primary_0 <- "#00ad93"
 dhsc_primary_5 <- "#99ded4"
-ggplot2::ggplot(data = both_doses_tbl, aes(age, total, fill = dose)) + geom_col(position = "dodge2") + scale_fill_manual(values = c(dhsc_primary_5, dhsc_primary_0))
 
 # DHSC colours?
 # g + scale_colour_dhsc_d(aesthetics = c("colour", "fill"))
+
+ggplot2::ggplot(data = both_doses_tbl, aes(age, total_millions, fill = dose)) + 
+  geom_col(position = "dodge2") + 
+  scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), values = c(dhsc_primary_5, dhsc_primary_0)) + 
+  theme_minimal() + 
+  theme(legend.position = "top") + 
+  xlab("") + 
+  ylab("millions") +
+  scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL)
 ```
 

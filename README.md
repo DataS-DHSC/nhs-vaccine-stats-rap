@@ -6,7 +6,7 @@ Use RStudio to run the various Rmd files.
 
 ### Creating charts (work in progress)
 
-For each slide, there will be an associated Rmd file, e.g. `01_vaccine_coverage.Rmd`. You can run this file in RStudio to create the desired chart output.
+For each chart of interest, there will be an associated Rmd file, e.g. `01_vaccine_coverage.Rmd`. You can run this file in RStudio to create the desired chart output.
 
 ### Creating slides (work in progress)
 

@@ -2,7 +2,7 @@
 title: "01_vaccine_coverage"
 output: html_document
 ---
-
+# QA comment: script header should include author, date and an about section (mini readme)
 ```{r setup, include=FALSE}
 # Packages
 knitr::opts_chunk$set(echo = TRUE)
@@ -20,12 +20,13 @@ library(DHSCcolours)
 ## test 2
 ```{r}
 # Read in the latest xlsx file
-path <- "COVID-19-weekly-announced-vaccinations-29-April-2021-.xlsx"
+path <- "C:/Users/llaeber/OneDrive - Department of Health and Social Care/Documents/R Projects/stats-to-powerpoint-rap/COVID-19-weekly-announced-vaccinations-29-April-2021-.xlsx"
 sheets <- (excel_sheets(path))
 print(sheets)
 ```
 
 ```{r}
+# QA comment: This part is not robust as it depends on file structure remaining unchanged, so I would add extra comments on what this chunk is supposed to do (e.g. keep two rows that contain the age brackets and the associated 'total' figures for 1st dose). Optional: could include test to see that first age category starts with "under" and last ends with"+"
 # Extract the first dose table from the sheet
 first_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
   dplyr::slice(11:12) %>% 
@@ -44,8 +45,10 @@ second_dose_tbl
 ```{r}
 # Tidy first dose table
 names(first_dose_tbl) <- lapply(first_dose_tbl[1, ], as.character)
+
 first_dose_tbl <- dplyr::slice(first_dose_tbl, 2) %>% 
   tidyr::pivot_longer(cols = everything(), names_to = "age", values_to = "first_dose")
+
 first_dose_tbl$age <- factor(first_dose_tbl$age, levels = first_dose_tbl$age) # lock in factor level order
 first_dose_tbl
 ```
@@ -82,11 +85,12 @@ dhsc_primary_5 <- "#99ded4"
 
 ggplot2::ggplot(data = both_doses_tbl, aes(age, total_millions, fill = dose)) + 
   geom_col(position = "dodge2") + 
-  scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), values = c(dhsc_primary_5, dhsc_primary_0)) + 
+  scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
+                    values = c(dhsc_primary_5, dhsc_primary_0)) + 
   theme_minimal() + 
   theme(legend.position = "top") + 
   xlab("") + 
-  ylab("millions") +
+  ylab("millions") + # QA comment: maybe more descriptive,e.g. "Doses administered (mio)"
   scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL)
 ```
 

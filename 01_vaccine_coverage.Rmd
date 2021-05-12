@@ -15,7 +15,7 @@ library(reshape2)
 
 # install using console: 
 # ```devtools::install_github("https://github.com/DataS-DHSC/DHSC_colours")```
-library(DHSCcolours)
+# library(DHSCcolours)
 ```
 
 ## test 2
@@ -77,23 +77,24 @@ both_doses_tbl
 ```
 
 ```{r}
-# Set DHSC colours and plot data
+# Set DHSC colours manually and plot data
 dhsc_primary_0 <- "#00ad93"
 dhsc_primary_5 <- "#99ded4"
 
 # DHSC colours?
 # g + scale_colour_dhsc_d(aesthetics = c("colour", "fill"))
-
-ggplot2::ggplot(data = both_doses_tbl, aes(age, total_millions, fill = dose)) + 
-  geom_col(position = "dodge2") + 
-  scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
-                    values = c(dhsc_primary_5, dhsc_primary_0)) + 
-  theme_minimal() + 
-  theme(legend.position = "top") + 
-  xlab("") + 
-  ylab("millions") + # QA comment: maybe more descriptive,e.g. "Doses administered (mio)"
-  scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL)
+# 
+# ggplot2::ggplot(data = both_doses_tbl, aes(age, total_millions, fill = dose)) + 
+#   geom_col(position = "dodge2") + 
+#   scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
+#                     values = c(dhsc_primary_5, dhsc_primary_0)) + 
+#   theme_minimal() + 
+#   theme(legend.position = "top") + 
+#   xlab("") + 
+#   ylab("millions") + # QA comment: maybe more descriptive,e.g. "Doses administered (mio)"
+#   scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL)
 ```
+
 ```{r}
 # Plot % vaccinated dose 1
 
@@ -112,8 +113,21 @@ percent_dose_1_tbl <- dplyr::slice(percent_dose_1_tbl, 2) %>%
   pivot_longer(percent_dose_1_tbl, cols = everything(), names_to = "age", values_to = "percent_dose_1")
 
 percent_dose_1_tbl$percent_dose_1 <- stringr::str_replace_all(percent_dose_1_tbl$percent_dose_1, "100%\\*", "1.00") %>%
-  as.numeric * 100.00
-
-# Plot
+  as.numeric * 10.0 # this is for the ggplot axis to work correctly
 
 ```
+
+```{r}
+# plot both figures
+ggplot2::ggplot(data = NULL) + 
+  geom_col(data = both_doses_tbl, aes(age, total_millions, fill = dose), position = "dodge2") + 
+  scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
+                    values = c(dhsc_primary_5, dhsc_primary_0)) + 
+  theme_minimal() + 
+  theme(legend.position = "top", legend.text = element_text(size = 8), legend.key.size = unit(0.4, 'cm')) + 
+  xlab("") + 
+  ylab("millions") + # QA comment: maybe more descriptive,e.g. "Doses administered (mio)"
+  geom_point(data = percent_dose_1_tbl, aes(age, percent_dose_1), shape = 5) +
+  scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL, sec.axis = sec_axis(trans = ~ . * 0.1, breaks = seq(0, 1, 0.1), labels = scales::percent_format(1)))
+```
+

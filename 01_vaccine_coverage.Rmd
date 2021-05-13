@@ -29,51 +29,51 @@ print(sheets)
 ```{r}
 # QA comment: This part is not robust as it depends on file structure remaining unchanged, so I would add extra comments on what this chunk is supposed to do (e.g. keep two rows that contain the age brackets and the associated 'total' figures for 1st dose). Optional: could include test to see that first age category starts with "under" and last ends with"+"
 # Extract the first dose table from the sheet
-first_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
+total_first_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
   dplyr::slice(11:12) %>% 
   dplyr::select(3:11) # change this if the columns change!
-first_dose_tbl
+total_first_dose_tbl
 ```
 
 ```{r}
 # Extract the second dose table from the sheet
-second_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
+total_second_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
   dplyr::slice(11:12) %>% 
   dplyr::select(15:23) # change this if the columns change!
-second_dose_tbl
+total_second_dose_tbl
 ```
 
 ```{r}
 # Tidy first dose table
-names(first_dose_tbl) <- lapply(first_dose_tbl[1, ], as.character)
+names(total_first_dose_tbl) <- lapply(total_first_dose_tbl[1, ], as.character)
 
-first_dose_tbl <- dplyr::slice(first_dose_tbl, 2) %>% 
+total_first_dose_tbl <- dplyr::slice(total_first_dose_tbl, 2) %>% 
   tidyr::pivot_longer(cols = everything(), names_to = "age", values_to = "first_dose")
 
-first_dose_tbl$age <- factor(first_dose_tbl$age, levels = first_dose_tbl$age) # lock in factor level order
-first_dose_tbl
+total_first_dose_tbl$age <- factor(total_first_dose_tbl$age, levels = total_first_dose_tbl$age) # lock in factor level order
+total_first_dose_tbl
 ```
 
 ```{r}
 # Tidy second dose table
-names(second_dose_tbl) <- lapply(second_dose_tbl[1, ], as.character)
-second_dose_tbl <- dplyr::slice(second_dose_tbl, 2) %>% 
+names(total_second_dose_tbl) <- lapply(total_second_dose_tbl[1, ], as.character)
+total_second_dose_tbl <- dplyr::slice(total_second_dose_tbl, 2) %>% 
   tidyr::pivot_longer(cols = everything(), names_to = "age", values_to = "second_dose")
-second_dose_tbl$age <- factor(second_dose_tbl$age, levels = second_dose_tbl$age) # lock in factor level order
-second_dose_tbl
+total_second_dose_tbl$age <- factor(total_second_dose_tbl$age, levels = total_second_dose_tbl$age) # lock in factor level order
+total_second_dose_tbl
 ```
 
 ```{r}
 # Join first and second dose table
-both_doses_tbl <- first_dose_tbl %>% left_join(second_dose_tbl, by = "age")
-both_doses_tbl <- reshape2::melt(both_doses_tbl, id.vars = c("age"), variable.name = "dose", value.name = "total")
-both_doses_tbl$total <- as.numeric(both_doses_tbl$total)
-both_doses_tbl
+total_both_doses_tbl <- total_first_dose_tbl %>% left_join(total_second_dose_tbl, by = "age")
+total_both_doses_tbl <- reshape2::melt(total_both_doses_tbl, id.vars = c("age"), variable.name = "dose", value.name = "total")
+total_both_doses_tbl$total <- as.numeric(total_both_doses_tbl$total)
+total_both_doses_tbl
 ```
 ```{r}
 # Convert total to millions of doses
-both_doses_tbl$total_millions <- both_doses_tbl$total / 1e6
-both_doses_tbl
+total_both_doses_tbl$total_millions <- total_both_doses_tbl$total / 1e6
+total_both_doses_tbl
 ```
 
 ```{r}
@@ -84,7 +84,7 @@ dhsc_primary_5 <- "#99ded4"
 # DHSC colours?
 # g + scale_colour_dhsc_d(aesthetics = c("colour", "fill"))
 # 
-# ggplot2::ggplot(data = both_doses_tbl, aes(age, total_millions, fill = dose)) + 
+# ggplot2::ggplot(data = total_both_doses_tbl, aes(age, total_millions, fill = dose)) + 
 #   geom_col(position = "dodge2") + 
 #   scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
 #                     values = c(dhsc_primary_5, dhsc_primary_0)) + 
@@ -120,13 +120,13 @@ percent_dose_1_tbl$percent_dose_1 <- stringr::str_replace_all(percent_dose_1_tbl
 ```{r}
 # plot both figures
 ggplot2::ggplot(data = NULL) + 
-  geom_col(data = both_doses_tbl, aes(age, total_millions, fill = dose), position = "dodge2") + 
+  geom_col(data = total_both_doses_tbl, aes(age, total_millions, fill = dose), position = "dodge2") + 
   scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
                     values = c(dhsc_primary_5, dhsc_primary_0)) + 
   theme_minimal() + 
   theme(legend.position = "top", legend.text = element_text(size = 8), legend.key.size = unit(0.4, 'cm')) + 
   xlab("") + 
-  ylab("millions") + # QA comment: maybe more descriptive,e.g. "Doses administered (mio)"
+  ylab("millions") +
   geom_point(data = percent_dose_1_tbl, aes(age, percent_dose_1), shape = 5) +
   scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL, sec.axis = sec_axis(trans = ~ . * 0.1, breaks = seq(0, 1, 0.1), labels = scales::percent_format(1)))
 ```

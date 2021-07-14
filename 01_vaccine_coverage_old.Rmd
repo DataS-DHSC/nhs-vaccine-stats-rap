@@ -1,0 +1,133 @@
+---
+title: "01_vaccine_coverage"
+author: Henry Cooksley
+date: May 2021
+output: html_document
+---
+```{r setup, include=FALSE}
+# Packages
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(reshape2)
+
+# install using console: 
+# ```devtools::install_github("https://github.com/DataS-DHSC/DHSC_colours")```
+# library(DHSCcolours)
+```
+
+## test 2
+```{r}
+# Read in the latest xlsx file
+path <- "COVID-19-weekly-announced-vaccinations-29-April-2021-.xlsx"
+sheets <- (excel_sheets(path))
+print(sheets)
+```
+
+```{r}
+# QA comment: This part is not robust as it depends on file structure remaining unchanged, so I would add extra comments on what this chunk is supposed to do (e.g. keep two rows that contain the age brackets and the associated 'total' figures for 1st dose). Optional: could include test to see that first age category starts with "under" and last ends with"+"
+# Extract the first dose table from the sheet
+total_first_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
+  dplyr::slice(11:12) %>% 
+  dplyr::select(3:11) # change this if the columns change!
+total_first_dose_tbl
+```
+
+```{r}
+# Extract the second dose table from the sheet
+total_second_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
+  dplyr::slice(11:12) %>% 
+  dplyr::select(15:23) # change this if the columns change!
+total_second_dose_tbl
+```
+
+```{r}
+# Tidy first dose table
+names(total_first_dose_tbl) <- lapply(total_first_dose_tbl[1, ], as.character)
+
+total_first_dose_tbl <- dplyr::slice(total_first_dose_tbl, 2) %>% 
+  tidyr::pivot_longer(cols = everything(), names_to = "age", values_to = "first_dose")
+
+total_first_dose_tbl$age <- factor(total_first_dose_tbl$age, levels = total_first_dose_tbl$age) # lock in factor level order
+total_first_dose_tbl
+```
+
+```{r}
+# Tidy second dose table
+names(total_second_dose_tbl) <- lapply(total_second_dose_tbl[1, ], as.character)
+total_second_dose_tbl <- dplyr::slice(total_second_dose_tbl, 2) %>% 
+  tidyr::pivot_longer(cols = everything(), names_to = "age", values_to = "second_dose")
+total_second_dose_tbl$age <- factor(total_second_dose_tbl$age, levels = total_second_dose_tbl$age) # lock in factor level order
+total_second_dose_tbl
+```
+
+```{r}
+# Join first and second dose table
+total_both_doses_tbl <- total_first_dose_tbl %>% left_join(total_second_dose_tbl, by = "age")
+total_both_doses_tbl <- reshape2::melt(total_both_doses_tbl, id.vars = c("age"), variable.name = "dose", value.name = "total")
+total_both_doses_tbl$total <- as.numeric(total_both_doses_tbl$total)
+total_both_doses_tbl
+```
+```{r}
+# Convert total to millions of doses
+total_both_doses_tbl$total_millions <- total_both_doses_tbl$total / 1e6
+total_both_doses_tbl
+```
+
+```{r}
+# Set DHSC colours manually and plot data
+dhsc_primary_0 <- "#00ad93"
+dhsc_primary_5 <- "#99ded4"
+
+# DHSC colours?
+# g + scale_colour_dhsc_d(aesthetics = c("colour", "fill"))
+# 
+# ggplot2::ggplot(data = total_both_doses_tbl, aes(age, total_millions, fill = dose)) + 
+#   geom_col(position = "dodge2") + 
+#   scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
+#                     values = c(dhsc_primary_5, dhsc_primary_0)) + 
+#   theme_minimal() + 
+#   theme(legend.position = "top") + 
+#   xlab("") + 
+#   ylab("millions") + # QA comment: maybe more descriptive,e.g. "Doses administered (mio)"
+#   scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL)
+```
+
+```{r}
+# Plot % vaccinated dose 1
+
+# Read in the table
+percent_dose_1_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
+  dplyr::slice(11:12) %>% 
+  dplyr::select(29:36)
+
+# Clean data
+names(percent_dose_1_tbl) <- readxl::read_excel(path, sheet = "NHS Region") %>% 
+  dplyr::slice(11) %>% 
+  dplyr::select(29:36) %>% 
+  unlist(., use.names = FALSE)
+
+percent_dose_1_tbl <- dplyr::slice(percent_dose_1_tbl, 2) %>% 
+  pivot_longer(percent_dose_1_tbl, cols = everything(), names_to = "age", values_to = "percent_dose_1")
+
+percent_dose_1_tbl$percent_dose_1 <- stringr::str_replace_all(percent_dose_1_tbl$percent_dose_1, "100%\\*", "1.00") %>%
+  as.numeric * 10.0 # this is for the ggplot axis to work correctly
+
+```
+
+```{r}
+# plot both figures
+ggplot2::ggplot(data = NULL) + 
+  geom_col(data = total_both_doses_tbl, aes(age, total_millions, fill = dose), position = "dodge2") + 
+  scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
+                    values = c(dhsc_primary_5, dhsc_primary_0)) + 
+  theme_minimal() + 
+  theme(legend.position = "top", legend.text = element_text(size = 8), legend.key.size = unit(0.4, 'cm')) + 
+  xlab("") + 
+  ylab("millions") +
+  geom_point(data = percent_dose_1_tbl, aes(age, percent_dose_1), shape = 5) +
+  scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL, sec.axis = sec_axis(trans = ~ . * 0.1, breaks = seq(0, 1, 0.1), labels = scales::percent_format(1)))
+```
+

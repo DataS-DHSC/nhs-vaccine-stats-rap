@@ -113,12 +113,41 @@ Clean percent first doses table
 names(percent_dose_1_tbl) <- percent_dose_1_tbl %>% dplyr::slice(1) %>% unlist(., use.names = FALSE)
 percent_dose_1_tbl <- percent_dose_1_tbl %>% dplyr::slice(2)
 percent_dose_1_tbl <- percent_dose_1_tbl %>% pivot_longer(cols = everything(), names_to = "age", values_to = "percent_dose_1")
-percent_dose_1_tbl$percent_dose_1_measure <- stringr::str_replace_all(percent_dose_1_tbl$percent_dose_1, "100%\\*", "1.00") %>%
-  as.numeric * 10.0 # this is for the ggplot axis to work correctly
+percent_dose_1_tbl$percent_dose_1 <- stringr::str_replace_all(percent_dose_1_tbl$percent_dose_1, "100%\\*", "1.00") %>% 
+  as.numeric(percent_dose_1_tbl$percent_dose_1)
 percent_dose_1_tbl
 ```
 
+Extract the percent second doses table
+```{r}
+percent_dose_2_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
+  dplyr::slice(11:12) %>%
+  dplyr::select(53:61)
 
+# sanity check
+# 40-44 is the earliest age category as of July 2021
+stopifnot(percent_dose_2_tbl[[1]][1] == "40-44")
+stopifnot(percent_dose_2_tbl[[9]][1] == "80+")
+stopifnot(nrow(percent_dose_2_tbl) == 2)
+
+percent_dose_2_tbl
+```
+Clean percent second doses table
+```{r}
+names(percent_dose_2_tbl) <- percent_dose_2_tbl %>% dplyr::slice(1) %>% unlist(., use.names = FALSE)
+percent_dose_2_tbl <- percent_dose_2_tbl %>% dplyr::slice(2)
+percent_dose_2_tbl <- percent_dose_2_tbl %>% pivot_longer(cols = everything(), names_to = "age", values_to = "percent_dose_2")
+percent_dose_2_tbl$percent_dose_2 <- stringr::str_replace_all(percent_dose_2_tbl$percent_dose_2, "100%\\*", "1.00") %>% as.numeric(percent_dose_2_tbl$percent_dose_2)
+percent_dose_2_tbl
+```
+
+Join first and second percent doses table
+```{r}
+percent_dose_both <- percent_dose_1_tbl %>% left_join(percent_dose_2_tbl, by = "age")
+percent_dose_both <- reshape2::melt(percent_dose_both, id.vars = c("age"), variable.name = "dose", value.name = "percent_dose")
+percent_dose_both$percent_dose_measure <- percent_dose_both$percent_dose * 10.0 # this is for the ggplot axis to work correctly
+percent_dose_both
+```
 
 
 Set DHSC colours and plot data
@@ -129,14 +158,15 @@ dhsc_primary_5 <- "#99ded4"
 
 # Plot data
 ggplot2::ggplot(data = NULL) + 
-  geom_col(data = total_both_doses_tbl, aes(age, total_millions, fill = dose), position = "dodge2") + 
-  scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
-                    values = c(dhsc_primary_5, dhsc_primary_0)) + 
-  theme_minimal() + 
-  theme(legend.position = "top", legend.text = element_text(size = 8), legend.key.size = unit(0.4, 'cm')) + 
-  xlab("") + 
+  geom_col(data = total_both_doses_tbl, aes(age, total_millions, fill = dose), position = "dodge2") +
+  scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"),
+  values = c(dhsc_primary_5, dhsc_primary_0)) +
+  xlab("") +
   ylab("millions") +
-  geom_point(data = percent_dose_1_tbl, aes(age, percent_dose_1_measure), shape = 5) +
+  theme_minimal() +
+  theme(legend.position = "top", legend.text = element_text(size = 8), legend.key.size = unit(0.4, 'cm')) +
+  geom_point(data = percent_dose_both, aes(age, percent_dose_measure, shape = dose), fill = "blue") +
+  scale_shape_manual(name = "", labels = c("% vaccinated dose 1", "% vaccinated dose 1"), values = c(5, 23)) +
   scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL, sec.axis = sec_axis(trans = ~ . * 0.1, breaks = seq(0, 1, 0.1), labels = scales::percent_format(1)))
 ```
 

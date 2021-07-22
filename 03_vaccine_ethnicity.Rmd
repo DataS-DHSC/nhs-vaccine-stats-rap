@@ -1,0 +1,155 @@
+---
+title: "03_vaccine_ethnicity"
+author: Henry Cooksley
+date: July 2021
+output: html_document
+---
+Packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(reshape2)
+```
+
+Read in the latest xlsx file
+```{r}
+path <- "COVID-19-weekly-announced-vaccinations-1-April-2021.xlsx"
+sheets <- (excel_sheets(path))
+print(sheets)
+```
+
+Data wrangling
+```{r}
+both_doses_tbl <- readxl::read_excel(path, sheet = "Ethnicity") %>% 
+  dplyr::slice(10:30)
+both_doses_tbl <- dplyr::bind_cols(dplyr::select(both_doses_tbl, 1), dplyr::select(both_doses_tbl, 3:4))
+both_doses_tbl <- dplyr::bind_rows(dplyr::slice(both_doses_tbl, 1), dplyr::slice(both_doses_tbl, 5:21))
+
+# sanity check
+stopifnot(both_doses_tbl[[1]][1] == "Ethnicity")
+stopifnot(both_doses_tbl[[3]][1] == "2nd Dose")
+stopifnot(both_doses_tbl[[1]][18] == "Not stated/Unknown")
+
+both_doses_tbl[[1]][1] = "ethnicity"
+both_doses_tbl[[2]][1] = "first_dose"
+both_doses_tbl[[3]][1] = "second_dose"
+
+# apply column names
+names(both_doses_tbl) <- lapply(both_doses_tbl[1, ], as.character)
+# remove redundant first row
+both_doses_tbl <- dplyr::slice(both_doses_tbl, 2:nrow(both_doses_tbl))
+
+# type coercion to numeric
+both_doses_tbl$first_dose <- as.numeric(both_doses_tbl$first_dose)
+both_doses_tbl$second_dose <- as.numeric(both_doses_tbl$second_dose)
+
+both_doses_tbl$ethnicity_group <- both_doses_tbl$ethnicity
+
+# group names
+white_british <- "White British"
+all_other_white <- "All other white"
+mixed_multiple_ethnic <- "Mixed/multiple ethnic groups"
+asian_asian_british <- "Asian/Asian British"
+black_black_british <- "Black/African/Caribbean/Black British"
+other_ethnic <- "Other ethnic groups"
+not_stated <- "Not stated/unknown"
+
+# map data to desired groups
+for (i in 1:nrow(both_doses_tbl)) {
+  if (both_doses_tbl$ethnicity[i] == "A: White - British") {
+    both_doses_tbl$ethnicity_group[i] = white_british
+  }
+  if (both_doses_tbl$ethnicity[i] == "B: White - Irish") {
+    both_doses_tbl$ethnicity_group[i] = all_other_white
+  }
+  if (both_doses_tbl$ethnicity[i] == "C: White - Any other White background") {
+    both_doses_tbl$ethnicity_group[i] = all_other_white
+  }
+  if (both_doses_tbl$ethnicity[i] == "D: Mixed - White and Black Caribbean") {
+    both_doses_tbl$ethnicity_group[i] = mixed_multiple_ethnic
+  }
+  if (both_doses_tbl$ethnicity[i] == "E: Mixed - White and Black African") {
+    both_doses_tbl$ethnicity_group[i] = mixed_multiple_ethnic
+  }
+  if (both_doses_tbl$ethnicity[i] == "F: Mixed - White and Asian") {
+    both_doses_tbl$ethnicity_group[i] = mixed_multiple_ethnic
+  }
+  if (both_doses_tbl$ethnicity[i] == "G: Mixed - Any other Mixed background") {
+    both_doses_tbl$ethnicity_group[i] = mixed_multiple_ethnic
+  }
+  if (both_doses_tbl$ethnicity[i] == "H: Asian or Asian British - Indian") {
+    both_doses_tbl$ethnicity_group[i] = asian_asian_british
+  }
+  if (both_doses_tbl$ethnicity[i] == "J: Asian or Asian British - Pakistani") {
+    both_doses_tbl$ethnicity_group[i] = asian_asian_british
+  }
+  if (both_doses_tbl$ethnicity[i] == "K: Asian or Asian British - Bangladeshi") {
+    both_doses_tbl$ethnicity_group[i] = asian_asian_british
+  }
+  if (both_doses_tbl$ethnicity[i] == "L: Asian or Asian British - Any other Asian background") {
+    both_doses_tbl$ethnicity_group[i] = asian_asian_british
+  }
+  if (both_doses_tbl$ethnicity[i] == "M: Black or Black British - Caribbean") {
+    both_doses_tbl$ethnicity_group[i] = black_black_british
+  }
+  if (both_doses_tbl$ethnicity[i] == "M: Black or Black British - Caribbean") {
+    both_doses_tbl$ethnicity_group[i] = black_black_british
+  }
+  if (both_doses_tbl$ethnicity[i] == "N: Black or Black British - African") {
+    both_doses_tbl$ethnicity_group[i] = black_black_british
+  }
+  if (both_doses_tbl$ethnicity[i] == "P: Black or Black British - Any other Black background") {
+    both_doses_tbl$ethnicity_group[i] = black_black_british
+  }
+  if (both_doses_tbl$ethnicity[i] == "R: Other ethnic groups - Chinese") {
+    both_doses_tbl$ethnicity_group[i] = other_ethnic
+  }
+  if (both_doses_tbl$ethnicity[i] == "S: Other ethnic groups - Any other ethnic group") {
+    both_doses_tbl$ethnicity_group[i] = other_ethnic
+  }
+  if (both_doses_tbl$ethnicity[i] == "Not stated/Unknown") {
+    both_doses_tbl$ethnicity_group[i] = not_stated
+  }
+}
+
+# lock in factor level order
+both_doses_tbl$ethnicity_group <- factor(both_doses_tbl$ethnicity_group, levels = unique(both_doses_tbl$ethnicity_group))
+
+# group by ethnicity group
+both_doses_tbl <- both_doses_tbl %>% 
+  group_by(ethnicity_group) %>% 
+  summarise(group_first_dose = sum(first_dose), group_second_dose = sum(second_dose))
+
+# melt
+both_doses_tbl <- reshape2::melt(both_doses_tbl, id.vars = c("ethnicity_group"), variable.name = "dose", value.name = "total")
+
+both_doses_tbl$total_millions <- as.numeric(both_doses_tbl$total) / 1e6
+
+both_doses_tbl
+```
+
+```{r fig.align="center", echo = FALSE,fig.width = 8, fig.height = 6}
+# set DHSC colours manually
+dhsc_primary_0 <- "#00ad93"
+dhsc_primary_5 <- "#99ded4"
+
+ggplot2::ggplot() +
+  ggplot2::geom_col(data = both_doses_tbl, aes(ethnicity_group, total, fill = dose), position_dodge()) +
+  scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
+                    values = c(dhsc_primary_5, dhsc_primary_0)) + 
+  theme_minimal() +
+  theme(legend.position = "top", 
+        legend.text = element_text(size = 8), 
+        legend.key.size = unit(0.4, 'cm'),
+        axis.text.x = element_text(angle = -22.5, vjust = 0, hjust = 0),
+        plot.margin = margin(t = 0, r = 40, b = 0, l = 0, unit = "pt")) +
+  xlab("") +
+  ylab("doses") + 
+  scale_y_continuous(label = scales::comma)
+```
+
+
+

@@ -207,7 +207,7 @@ ggplot2::ggplot(data = NULL) +
   ggplot2::facet_wrap(ggplot2::vars(region), nrow = 2, ncol = 4, scales = "free_x") +
   ggplot2::geom_col(data = both_doses_tbl, aes(age, total_millions, fill = dose), position = position_stack(reverse = TRUE)) +
   geom_point(data = percent_dose_both, aes(age, percent_dose_measure, shape = dose), fill = "blue") +
-  scale_shape_manual(name = "", labels = c("% vaccinated dose 1", "% vaccinated dose 1"), values = c(5, 23)) +
+  scale_shape_manual(name = "", labels = c("% vaccinated dose 1", "% vaccinated dose 2"), values = c(5, 23)) +
   scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
                     values = c(dhsc_primary_5, dhsc_primary_0)) + 
   theme_minimal() + 

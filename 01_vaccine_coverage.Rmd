@@ -166,7 +166,7 @@ ggplot2::ggplot(data = NULL) +
   theme_minimal() +
   theme(legend.position = "top", legend.text = element_text(size = 8), legend.key.size = unit(0.4, 'cm')) +
   geom_point(data = percent_dose_both, aes(age, percent_dose_measure, shape = dose), fill = "blue") +
-  scale_shape_manual(name = "", labels = c("% vaccinated dose 1", "% vaccinated dose 1"), values = c(5, 23)) +
+  scale_shape_manual(name = "", labels = c("% vaccinated dose 1", "% vaccinated dose 2"), values = c(5, 23)) +
   scale_y_continuous(limits = c(0, 10), breaks = c(0:10), minor_breaks = NULL, sec.axis = sec_axis(trans = ~ . * 0.1, breaks = seq(0, 1, 0.1), labels = scales::percent_format(1)))
 ```
 

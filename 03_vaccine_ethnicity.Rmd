@@ -16,7 +16,7 @@ library(reshape2)
 
 Read in the latest xlsx file
 ```{r}
-path <- "COVID-19-weekly-announced-vaccinations-1-April-2021.xlsx"
+path <- "COVID-19-weekly-announced-vaccinations-01-July-2021-revised-.xlsx"
 sheets <- (excel_sheets(path))
 print(sheets)
 ```
@@ -24,13 +24,13 @@ print(sheets)
 Data wrangling
 ```{r}
 both_doses_tbl <- readxl::read_excel(path, sheet = "Ethnicity") %>% 
-  dplyr::slice(10:30)
+  dplyr::slice(9:31)
 both_doses_tbl <- dplyr::bind_cols(dplyr::select(both_doses_tbl, 1), dplyr::select(both_doses_tbl, 3:4))
 both_doses_tbl <- dplyr::bind_rows(dplyr::slice(both_doses_tbl, 1), dplyr::slice(both_doses_tbl, 5:21))
 
 # sanity check
-stopifnot(both_doses_tbl[[1]][1] == "Ethnicity")
-stopifnot(both_doses_tbl[[3]][1] == "2nd Dose")
+stopifnot(both_doses_tbl[[1]][1] == "Ethnicity4")
+stopifnot(both_doses_tbl[[3]][1] == "2nd dose")
 stopifnot(both_doses_tbl[[1]][18] == "Not stated/Unknown")
 
 both_doses_tbl[[1]][1] = "ethnicity"

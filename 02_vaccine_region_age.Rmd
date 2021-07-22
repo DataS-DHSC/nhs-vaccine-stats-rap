@@ -1,7 +1,7 @@
 ---
 title: "02_vaccine_region_age"
 author: Henry Cooksley
-date: May 2021
+date: "22/07/2021"
 output: html_document
 ---
 Packages
@@ -10,13 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 library(readxl)
 library(dplyr)
 library(tidyr)
-library(ggplot2)
 library(reshape2)
+library(ggplot2)
 ```
 
 Read in the latest xlsx file
 ```{r}
-path <- "COVID-19-weekly-announced-vaccinations-1-April-2021.xlsx"
+path <- "COVID-19-weekly-announced-vaccinations-01-July-2021-revised-.xlsx"
 sheets <- (excel_sheets(path))
 print(sheets)
 ```
@@ -25,15 +25,19 @@ Extract first dose table from the sheet
 ```{r}
 first_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
   dplyr::slice(11:20) %>% 
-  dplyr::select(1:10) # change this if the columns change!
+  dplyr::select(2:16) # change this if the columns change!
 
 # sanity check
 stopifnot(first_dose_tbl[[1]][10] == "South West") # test lower-left bound of table
-stopifnot(first_dose_tbl[[10]][1] == "80+") # test upper-right bound of table
+stopifnot(first_dose_tbl[[15]][1] == "80+") # test upper-right bound of table
 stopifnot(nrow(first_dose_tbl) == 10) # should be 10
+stopifnot(ncol(first_dose_tbl) == 15) # should be 15
 
-names <- first_dose_tbl %>% dplyr::slice(1)
-names <- lapply(names[1,], as.character)
+# Fix capitalisation 
+stopifnot(first_dose_tbl[[1]][4] == "East Of England")
+first_dose_tbl[[1]][4] <- "East of England"
+stopifnot(first_dose_tbl[[1]][7] == "North East And Yorkshire")
+first_dose_tbl[[1]][7] <- "North East and Yorkshire"
 
 first_dose_tbl
 ```
@@ -42,36 +46,31 @@ Extract second dose table from the sheet
 ```{r}
 second_dose_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
   dplyr::slice(11:20) %>% 
-  dplyr::select(11:19) # change this if the columns change!
-
-# Fix capitalisation
-stopifnot(first_dose_tbl[[1]][4] == "East Of England")
-first_dose_tbl[[1]][4] <- "East of England"
-stopifnot(first_dose_tbl[[1]][7] == "North East And Yorkshire")
-first_dose_tbl[[1]][7] <- "North East and Yorkshire"
-
-regions <- first_dose_tbl[1]
+  dplyr::select(20:33) # change this if the columns change!
 
 # Add the region column from first table
+regions <- first_dose_tbl[1]
 second_dose_tbl <- dplyr::bind_cols(regions, second_dose_tbl)
 
 # sanity check
-stopifnot(first_dose_tbl[[1]][10] == "South West") # test lower-left bound of table
-stopifnot(second_dose_tbl[[10]][1] == "80+") # test upper-right bound of table
+stopifnot(second_dose_tbl[[1]][10] == "South West") # test lower-left bound of table
+stopifnot(second_dose_tbl[[15]][1] == "80+") # test upper-right bound of table
 stopifnot(nrow(second_dose_tbl) == 10) # should be 10
+stopifnot(ncol(second_dose_tbl) == 15) # should be 15
 
 second_dose_tbl
 ```
 
 More tidying of first table
 ```{r}
-first_dose_tbl <- bind_cols(first_dose_tbl[1], first_dose_tbl[3:10])
 first_dose_tbl[[1]][1] <- "region"
-first_dose_tbl[[2]][1] <- "16-49"
+first_dose_tbl[[2]][1] <- "0-17"
 first_dose_tbl <- bind_rows(dplyr::slice(first_dose_tbl, 1), dplyr::slice(first_dose_tbl, 4:10))
 names(first_dose_tbl) <- lapply(first_dose_tbl[1, ], as.character)
 first_dose_tbl <- dplyr::slice(first_dose_tbl, 2:length(first_dose_tbl))
-first_dose_tbl <- tidyr::pivot_longer(first_dose_tbl, cols = c("16-49":"80+"), names_to = "age", values_to = "first_dose")
+first_dose_tbl <- tidyr::pivot_longer(first_dose_tbl, cols = c("0-17":"80+"), names_to = "age", values_to = "first_dose")
+
+first_dose_tbl$first_dose <- as.numeric(first_dose_tbl$first_dose)
 
 first_dose_tbl
 ```
@@ -79,11 +78,13 @@ first_dose_tbl
 More tidying of second table
 ```{r}
 second_dose_tbl[[1]][1] <- "region"
-second_dose_tbl[[3]][1] <- "16-49"
-second_dose_tbl <- bind_cols(dplyr::select(second_dose_tbl, 1), dplyr::select(second_dose_tbl, 3:10))
+second_dose_tbl[[2]][1] <- "0-17"
+second_dose_tbl <- bind_rows(dplyr::slice(second_dose_tbl, 1), dplyr::slice(second_dose_tbl, 4:10))
 names(second_dose_tbl) <- lapply(second_dose_tbl[1, ], as.character)
-second_dose_tbl <- dplyr::slice(second_dose_tbl, 4:n())
-second_dose_tbl <- tidyr::pivot_longer(second_dose_tbl, cols = c("16-49":"80+"), names_to = "age", values_to = "second_dose")
+second_dose_tbl <- dplyr::slice(second_dose_tbl, 2:n())
+second_dose_tbl <- tidyr::pivot_longer(second_dose_tbl, cols = c("0-17":"80+"), names_to = "age", values_to = "second_dose")
+
+second_dose_tbl$second_dose <- as.numeric(second_dose_tbl$second_dose)
 
 second_dose_tbl
 ```
@@ -105,9 +106,9 @@ both_doses_tbl
 ```
 Plot
 ```{r}
-both_doses_tbl$age <- factor(both_doses_tbl$age, levels = levels(factor(both_doses_tbl$age[1:8], levels = both_doses_tbl$age[1:8]))) # Lock in factor level order
+both_doses_tbl$age <- factor(both_doses_tbl$age, levels = levels(factor(both_doses_tbl$age[1:14], levels = both_doses_tbl$age[1:14]))) # Lock in factor level order
 both_doses_tbl$total <- as.numeric(both_doses_tbl$total)  # Convert to numeric
-both_doses_tbl$total_millions <- as.numeric(both_doses_tbl$total) / 1e6  # Just in case
+both_doses_tbl$total_millions <- as.numeric(both_doses_tbl$total) / 1e6  # for plotting
 
 both_doses_tbl
 ```
@@ -118,23 +119,25 @@ dhsc_primary_5 <- "#99ded4"
 ```
 
 
-Percentage vaccinated per each dose
+Percentage vaccinated for dose 1
 ```{r}
 percent_dose_1_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
-  dplyr::select(23:29) %>% 
+  dplyr::select(39:51) %>% 
   dplyr::slice(11:20)
 
+# Add region names to data
+stopifnot(nrow(regions) == nrow(percent_dose_1_tbl))
 percent_dose_1_tbl <- dplyr::bind_cols(regions, percent_dose_1_tbl)
 
 # sanity check
 stopifnot(percent_dose_1_tbl[[1]][10] == "South West")
-stopifnot(percent_dose_1_tbl[[8]][1] == "80+")
+stopifnot(percent_dose_1_tbl[[14]][1] == "80+")
 
 region_names <- percent_dose_1_tbl %>% dplyr::slice(4:10) %>% dplyr::select(1)
 names(region_names) <- "region"
-age_category_names <- percent_dose_1_tbl %>% dplyr::slice(1) %>% dplyr::select(2:8) %>% unlist(., use.names = FALSE)
+age_category_names <- percent_dose_1_tbl %>% dplyr::slice(1) %>% dplyr::select(2:14) %>% unlist(., use.names = FALSE)
 
-percent_dose_1_tbl <- percent_dose_1_tbl %>% dplyr::slice(4:10) %>% dplyr::select(2:8)
+percent_dose_1_tbl <- percent_dose_1_tbl %>% dplyr::slice(4:10) %>% dplyr::select(2:14)
 stopifnot(ncol(percent_dose_1_tbl) == length(age_category_names))
 stopifnot(nrow(percent_dose_1_tbl) == 7)
 names(percent_dose_1_tbl) <- age_category_names
@@ -143,24 +146,72 @@ percent_dose_1_tbl
 percent_dose_1_tbl <- dplyr::bind_cols(region_names, percent_dose_1_tbl)
 
 percent_dose_1_tbl <- percent_dose_1_tbl %>%
-  pivot_longer(cols = names(percent_dose_1_tbl)[2:8], names_to = "age", values_to = "percent_dose_1")
+  pivot_longer(cols = names(percent_dose_1_tbl)[2:14], names_to = "age", values_to = "percent_dose_1")
 
-percent_dose_1_tbl$percent_dose_1 <- stringr::str_replace_all(percent_dose_1_tbl$percent_dose_1, "100%\\*", "1.00") %>%
-  as.numeric * 2  # this is weird but it makes the ggplot axis to work correctly
+percent_dose_1_tbl$percent_dose_1_measure <- stringr::str_replace_all(percent_dose_1_tbl$percent_dose_1, "100%\\*", "1.00") %>%
+  as.numeric * 2 # this is for the ggplot axis to work correctly
+
+percent_dose_1_tbl <- dplyr::bind_cols(percent_dose_1_tbl[1:2], percent_dose_1_tbl[4])
 
 percent_dose_1_tbl
 ```
+
+Percentage vaccinated for dose 2
+```{r}
+percent_dose_2_tbl <- readxl::read_excel(path, sheet = "NHS Region") %>% 
+  dplyr::select(53:61) %>% 
+  dplyr::slice(11:20)
+
+# Add region names to data
+stopifnot(nrow(regions) == nrow(percent_dose_2_tbl))
+percent_dose_2_tbl <- dplyr::bind_cols(regions, percent_dose_2_tbl)
+
+# sanity check
+stopifnot(percent_dose_2_tbl[[1]][10] == "South West")
+stopifnot(percent_dose_2_tbl[[10]][1] == "80+")
+
+region_names <- percent_dose_2_tbl %>% dplyr::slice(4:10) %>% dplyr::select(1)
+names(region_names) <- "region"
+age_category_names <- percent_dose_2_tbl %>% dplyr::slice(1) %>% dplyr::select(2:10) %>% unlist(., use.names = FALSE)
+
+percent_dose_2_tbl <- percent_dose_2_tbl %>% dplyr::slice(4:10) %>% dplyr::select(2:10)
+stopifnot(ncol(percent_dose_2_tbl) == length(age_category_names))
+stopifnot(nrow(percent_dose_2_tbl) == 7)
+names(percent_dose_2_tbl) <- age_category_names
+percent_dose_2_tbl
+
+percent_dose_2_tbl <- dplyr::bind_cols(region_names, percent_dose_2_tbl)
+
+percent_dose_2_tbl <- percent_dose_2_tbl %>%
+  pivot_longer(cols = names(percent_dose_2_tbl)[2:10], names_to = "age", values_to = "percent_dose_2")
+
+percent_dose_2_tbl$percent_dose_2_measure <- stringr::str_replace_all(percent_dose_2_tbl$percent_dose_2, "100%\\*", "1.00") %>%
+  as.numeric * 2 # this is for the ggplot axis to work correctly
+
+percent_dose_2_tbl <- dplyr::bind_cols(percent_dose_2_tbl[1:2], percent_dose_2_tbl[4])
+
+percent_dose_2_tbl
+```
+
+Join first and second percent doses table
+```{r}
+percent_dose_both <- percent_dose_1_tbl %>% left_join(percent_dose_2_tbl, by = c("region", "age"))
+percent_dose_both <- reshape2::melt(percent_dose_both, id.vars = c("region", "age"), variable.name = "dose", value.name = "percent_dose_measure")
+percent_dose_both
+```
+
 
 Plot data
 ```{r fig.align="center", echo = FALSE,fig.width = 10}
 ggplot2::ggplot(data = NULL) +
   ggplot2::facet_wrap(ggplot2::vars(region), nrow = 2, ncol = 4, scales = "free_x") +
   ggplot2::geom_col(data = both_doses_tbl, aes(age, total_millions, fill = dose), position = position_stack(reverse = TRUE)) +
-  geom_point(data = percent_dose_1_tbl, aes(age, percent_dose_1), shape = 5) +
+  geom_point(data = percent_dose_both, aes(age, percent_dose_measure, shape = dose), fill = "blue") +
+  scale_shape_manual(name = "", labels = c("% vaccinated dose 1", "% vaccinated dose 1"), values = c(5, 23)) +
   scale_fill_manual(name = "", labels = c("1st dose", "2nd dose"), 
                     values = c(dhsc_primary_5, dhsc_primary_0)) + 
   theme_minimal() + 
-  theme(legend.position = "top", axis.text = element_text(size = 6.5, colour = "black"), strip.text = element_text(size=10), legend.text = element_text(size = 8), legend.key.size = unit(0.4, 'cm')) + 
+  theme(legend.position = "top", axis.text = element_text(size = 6.5, colour = "black"), axis.text.x = element_text(angle = -45, vjust = 0, hjust = 0), strip.text = element_text(size=10), legend.text = element_text(size = 8), legend.key.size = unit(0.4, 'cm')) + 
   scale_y_continuous(limits = c(0, 2), breaks = seq(0, 2, by = 0.2), minor_breaks = NULL, sec.axis = sec_axis(trans = ~ . * 0.5, breaks = seq(0, 1, 0.1), labels = scales::percent_format(1))) +
   xlab("") +
   ylab("millions")

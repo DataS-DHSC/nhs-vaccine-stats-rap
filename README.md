@@ -1,5 +1,7 @@
 # nhs-vaccine-stats-rap
 
+Reproducible analytical pipeline (RAP) for NHS weekly vaccine statistics
+
 ## Getting started
 
 To use and develop this code, you should have some familiarity with R, RStudio, and the tidyverse set of packages. 
